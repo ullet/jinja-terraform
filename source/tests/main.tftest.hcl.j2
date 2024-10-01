@@ -1,0 +1,39 @@
+{#
+Terraform variables and functions can't be used in the mock set up, e.g. can't
+use a variable or a function to reduce duplication or wrap long strings.
+The template variables are useful here to overcome that limitation.
+#}
+
+{% set subscription_id = "12345678-1234-9876-4563-123456789012" %}
+{% set resource_group_name = "example-resource-group" %}
+{% set resource_base_id =
+    "/subscriptions/" ~ subscription_id ~
+    "/resourceGroups/" ~ resource_group_name %}
+{% set service_plan_id =
+    resource_base_id ~
+    "/providers/Microsoft.Web/serverFarms/servicePlanName" %}
+{% set identity_id =
+    resource_base_id ~
+    "/providers/Microsoft.ManagedIdentity" ~
+    "/userAssignedIdentities/identityName" %}
+
+mock_provider "azurerm" {
+    mock_resource "azurerm_service_plan" {
+        defaults = {
+            id = "{{ service_plan_id }}"
+        }
+    }
+
+    mock_resource "azurerm_user_assigned_identity" {
+        defaults = {
+            id = "{{ identity_id }}"
+        }
+    }
+}
+
+run "correct_web_app_name" {
+  assert {
+    condition     = azurerm_linux_web_app.wa.name == "the-web-app"
+    error_message = "Incorrect web app name"
+  }
+}
